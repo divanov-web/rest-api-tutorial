@@ -1,67 +1,42 @@
-package db
+package mongodb
 
 import (
 	"context"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"rest-api-tutorial/internal/user"
-	"rest-api-tutorial/pkg/logging"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type db struct {
-	collection *mongo.Collection
-	logger     *logging.Logger
-}
+func NewClient(ctx context.Context, host, port, username, password, database, authDB string) (db *mongo.Database, err error) {
+	var mongoDBURL string
+	var isAuth bool
+	if username == "" && password == "" {
+		mongoDBURL = fmt.Sprintf("mongodb://%s:%s", host, port)
+	} else {
+		isAuth = true
+		mongoDBURL = fmt.Sprintf("mongodb://%s:%s@%s:%s", username, password, host, port)
+	}
 
-func (d *db) Create(ctx context.Context, user user.User) (string, error) {
-	d.logger.Debug("create user")
-	result, err := d.collection.InsertOne(ctx, user)
+	clientOptions := options.Client().ApplyURI(mongoDBURL)
+	if isAuth {
+		if authDB == "" {
+			authDB = database
+		}
+		clientOptions.SetAuth(options.Credential{
+			AuthSource: authDB,
+			Username:   username,
+			Password:   password,
+		})
+	}
+
+	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
-		return "", fmt.Errorf("failed to create user due to error: %v", err)
+		return nil, fmt.Errorf("failed to connect to mongoDB due to error: %v", err)
 	}
 
-	d.logger.Debug("convert InsertedID to ObjectID")
-	oid, ok := result.InsertedID.(primitive.ObjectID)
-	if ok {
-		return oid.Hex(), nil
-	}
-	d.logger.Trace(user)
-	return "", fmt.Errorf("failed to convert objectid to hex. probably oid: %s", oid)
-}
-
-func (d *db) FindOne(ctx context.Context, id string) (u user.User, err error) {
-	oid, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return u, fmt.Errorf("failed to convert hex to objectid. hex: %s", id)
-	}
-	// mongo.getDatabase("test").getCollection("docs").find({})
-	filter := bson.M{"_id": oid}
-
-	result := d.collection.FindOne(ctx, filter)
-	if result.Err() != nil {
-		// TODO 404
-		return u, fmt.Errorf("failed to find one user by id: %s due to error: %v", id, err)
-	}
-	if err = result.Decode(&u); err != nil {
-		return u, fmt.Errorf("failed to decode user (id:%s) from DB due to error: %v", id, err)
+	if err = client.Ping(ctx, nil); err != nil {
+		return nil, fmt.Errorf("failed to ping mongoDB due to error: %v", err)
 	}
 
-	return u, nil
-}
-
-func (d *db) Update(ctx context.Context, user user.User) error {
-	panic("implement me")
-}
-
-func (d *db) Delete(ctx context.Context, id string) error {
-	panic("implement me")
-}
-
-func NewStorage(database *mongo.Database, collection string, logger *logging.Logger) user.Storage {
-	return &db{
-		collection: database.Collection(collection),
-		logger:     logger,
-	}
+	return client.Database(database), nil
 }
