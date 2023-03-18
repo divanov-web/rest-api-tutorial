@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/jackc/pgconn"
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"log"
 	"rest-api-tutorial/internal/config"
-	"rest-api-tutorial/pkg/utils"
+	repeatable "rest-api-tutorial/pkg/utils"
 	"time"
 )
 
@@ -21,7 +21,7 @@ type Client interface {
 
 func NewClient(ctx context.Context, maxAttempts int, sc config.StorageConfig) (pool *pgxpool.Pool, err error) {
 	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", sc.Username, sc.Password, sc.Host, sc.Port, sc.Database)
-	err = utils.DoWithTries(func() error {
+	err = repeatable.DoWithTries(func() error {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
