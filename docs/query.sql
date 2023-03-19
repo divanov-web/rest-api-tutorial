@@ -1,21 +1,59 @@
-CREATE TABLE public.author (
-                               id uuid primary key default gen_random_uuid(),
-                               name varchar(100) NOT NULL
+DROP TABLE IF EXISTS author CASCADE;
+DROP TABLE IF EXISTS book CASCADE;
+DROP TABLE IF EXISTS book_authors CASCADE;
+
+CREATE TABLE public.author
+(
+    id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL
 );
 
-CREATE TABLE public.book (
-                             id uuid primary key default gen_random_uuid(),
-                             name varchar(100) NOT NULL,
-                             author_id uuid not null,
-                             CONSTRAINT author_fk FOREIGN KEY (author_id) REFERENCES public.author(id)
+CREATE TABLE public.book
+(
+    id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL,
+    age  INT
 );
 
-INSERT INTO author (name) VALUES ('народ');
-INSERT INTO author (name) VALUES ('Джоин Роулинг');
-INSERT INTO author (name) VALUES ('Джек Лондон');
+CREATE TABLE public.book_authors
+(
+    id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    book_id   UUID NOT NULL,
+    author_id UUID NOT NULL,
 
-INSERT INTO book (name, author_id) VALUES ('Колобок', 'a05c0ce4-922e-4d51-8475-f312dc9dc9bd');
-INSERT INTO book (name, author_id) VALUES ('Гарри Поттер', '1d2b56d7-ad00-4438-90e5-6aefcfa91e7e');
-INSERT INTO book (name, author_id) VALUES ('Бриллианты', '05c79016-f17b-47f2-abe9-5447abb7c598');
+    CONSTRAINT book_fk FOREIGN KEY (book_id) REFERENCES public.book (id),
+    CONSTRAINT author_fk FOREIGN KEY (author_id) REFERENCES public.author (id),
+    CONSTRAINT book_author_unique UNIQUE (book_id, author_id)
+);
 
-SELECT * FROM author;
+INSERT INTO author (id, name)
+VALUES ('707f69e0-edac-4c3e-bb7f-918d3f190e19', 'Народ');
+INSERT INTO author (id, name)
+VALUES ('1ad0596d-e43d-4093-a7fe-a6c1074f6219', 'Джоан Роулинг');
+INSERT INTO author (id, name)
+VALUES ('62af3986-0963-465c-8a86-dd23ac240523', 'Джек Лондон');
+
+INSERT INTO book (id, name, age)
+VALUES ('e51083cf-ee8e-4ee1-adfe-fbcbd5c5574c', 'колобок', 1000);
+INSERT INTO book (id, name, age)
+VALUES ('dcb2f994-dc9d-4743-8d50-9ac253930768', 'гарри поттер', 22);
+INSERT INTO book (id, name)
+VALUES ('39b9c138-5e2b-481b-8827-af0001ed53e0', 'брилианты');
+
+
+-- kolobok
+INSERT INTO book_authors (book_id, author_id)
+VALUES ('e51083cf-ee8e-4ee1-adfe-fbcbd5c5574c', '1ad0596d-e43d-4093-a7fe-a6c1074f6219');
+INSERT INTO book_authors (book_id, author_id)
+VALUES ('e51083cf-ee8e-4ee1-adfe-fbcbd5c5574c', '707f69e0-edac-4c3e-bb7f-918d3f190e19');
+
+-- HP
+INSERT INTO book_authors (book_id, author_id)
+VALUES ('dcb2f994-dc9d-4743-8d50-9ac253930768', '707f69e0-edac-4c3e-bb7f-918d3f190e19');
+INSERT INTO book_authors (book_id, author_id)
+VALUES ('dcb2f994-dc9d-4743-8d50-9ac253930768', '62af3986-0963-465c-8a86-dd23ac240523');
+INSERT INTO book_authors (book_id, author_id)
+VALUES ('dcb2f994-dc9d-4743-8d50-9ac253930768', '1ad0596d-e43d-4093-a7fe-a6c1074f6219');
+
+
+
